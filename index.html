@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Miniblog</title>
-  <meta name="description" content="Miniblog —— 一个只把数据存在你浏览器里的小型动态发布页。" />
+  <meta name="description" content="Miniblog —— 账号、动态与评论都存在你浏览器里的小型发布页。" />
   <meta name="color-scheme" content="light dark" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%234f46e5'/%3E%3Ctext x='16' y='22' font-family='sans-serif' font-size='17' font-weight='700' fill='white' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="styles.css" />
@@ -16,61 +16,198 @@
         <span class="brand-mark" aria-hidden="true">M</span>
         <span class="brand-name">Miniblog</span>
       </div>
-      <span class="header-note">只存在本机浏览器</span>
+
+      <div class="header-actions">
+        <button type="button" class="btn-ghost" id="login-open-btn">登录 / 注册</button>
+        <div class="user-menu" id="user-menu" hidden>
+          <button type="button" class="user-chip" id="profile-btn" title="查看我的主页">
+            <span class="avatar avatar-xs" id="header-avatar">?</span>
+            <span class="user-chip-name" id="header-name"></span>
+          </button>
+          <button type="button" class="btn-ghost" id="logout-btn">退出</button>
+        </div>
+      </div>
     </div>
   </header>
 
   <main class="layout">
-    <h1 class="visually-hidden">Miniblog 动态发布页</h1>
+    <div id="timeline-view">
+      <h1 class="visually-hidden">Miniblog 时间线</h1>
 
-    <section class="composer">
-      <form id="composer-form" novalidate>
-        <div class="composer-body">
-          <div class="avatar" aria-hidden="true">G</div>
-          <textarea
-            id="composer-input"
-            name="content"
-            rows="3"
-            maxlength="280"
-            placeholder="分享此刻的想法…"
-            aria-label="动态内容"
-            required></textarea>
+      <section class="composer" id="composer-guest" hidden>
+        <div class="composer-locked">
+          <div>
+            <p class="locked-title">登录后即可发布</p>
+            <p class="locked-note">内容只保存在当前浏览器，不会上传到任何服务器</p>
+          </div>
+          <button type="button" class="btn-primary js-open-auth">登录 / 注册</button>
         </div>
-        <div class="composer-actions">
-          <p class="composer-hint" id="composer-notice">最多 280 字 · Ctrl/⌘ + Enter 发布</p>
-          <button type="submit" class="btn-primary" id="publish-btn" disabled>发布</button>
-        </div>
-      </form>
-    </section>
+      </section>
 
-    <section class="timeline" aria-labelledby="timeline-title">
-      <div class="timeline-head">
-        <h2 id="timeline-title">时间线</h2>
-        <span class="timeline-count" id="post-count"></span>
+      <section class="composer" id="composer-user" hidden>
+        <form id="composer-form" novalidate>
+          <div class="composer-body">
+            <div class="avatar" id="composer-avatar" aria-hidden="true">?</div>
+            <textarea
+              id="composer-input"
+              name="content"
+              rows="3"
+              maxlength="280"
+              placeholder="分享此刻的想法…"
+              aria-label="动态内容"></textarea>
+          </div>
+          <div class="composer-actions">
+            <p class="composer-hint" id="composer-notice">最多 280 字 · Ctrl/⌘ + Enter 发布</p>
+            <button type="submit" class="btn-primary" id="publish-btn" disabled>发布</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="timeline" aria-labelledby="timeline-title">
+        <div class="timeline-head">
+          <h2 id="timeline-title">时间线</h2>
+          <span class="timeline-count" id="post-count"></span>
+        </div>
+        <ul class="post-list" id="post-list"></ul>
+        <p class="empty-state" id="empty-state">还没有内容。登录后写下第一条。</p>
+      </section>
+    </div>
+
+    <section class="profile" id="profile-view" hidden aria-labelledby="profile-name">
+      <button type="button" class="btn-ghost back-btn" id="back-btn">
+        <span aria-hidden="true">←</span> 返回时间线
+      </button>
+
+      <div class="profile-card">
+        <div class="avatar avatar-lg" id="profile-avatar" aria-hidden="true">?</div>
+        <div class="profile-info">
+          <h2 id="profile-name"></h2>
+          <p class="profile-handle" id="profile-handle"></p>
+          <p class="profile-meta" id="profile-meta"></p>
+          <p class="profile-stats" id="profile-stats"></p>
+        </div>
       </div>
-      <ul class="post-list" id="post-list"></ul>
-      <p class="empty-state" id="empty-state">还没有内容。写下第一条，它会保存在这台设备的浏览器里。</p>
+
+      <div class="tabs" role="tablist" aria-label="历史记录类型">
+        <button type="button" class="tab is-active" data-tab="posts" role="tab" aria-selected="true">我的帖子</button>
+        <button type="button" class="tab" data-tab="comments" role="tab" aria-selected="false">我的评论</button>
+      </div>
+
+      <ul class="profile-list" id="profile-posts"></ul>
+      <ul class="profile-list" id="profile-comments" hidden></ul>
+      <p class="empty-state" id="profile-empty" hidden></p>
     </section>
   </main>
 
   <footer class="site-footer">
-    <p>Miniblog · 纯 HTML / CSS / JavaScript · 数据保存在 LocalStorage</p>
+    <p>Miniblog · 纯 HTML / CSS / JavaScript · 账号与内容都存在本机浏览器</p>
   </footer>
 
   <template id="post-template">
     <li class="post">
-      <div class="avatar" aria-hidden="true"></div>
+      <div class="avatar" data-role="post-avatar" aria-hidden="true"></div>
       <div class="post-main">
         <div class="post-head">
-          <span class="post-author"></span>
-          <span class="post-handle"></span>
-          <time class="post-time"></time>
+          <span class="post-author" data-role="post-author"></span>
+          <span class="post-handle" data-role="post-handle"></span>
+          <time class="post-time" data-role="post-time"></time>
         </div>
-        <p class="post-content"></p>
+        <p class="post-content" data-role="post-content"></p>
+        <div class="post-actions">
+          <button type="button" class="action-btn" data-role="toggle-comments" aria-expanded="false">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 4H4v12h4v4l5-4h7z" fill="none" stroke="currentColor" stroke-width="1.7"
+                stroke-linejoin="round" />
+            </svg>
+            <span data-role="comment-count">评论</span>
+          </button>
+        </div>
+        <div class="comments" data-role="comments" hidden>
+          <ul class="comment-list" data-role="comment-list"></ul>
+          <form class="comment-form" data-role="comment-form" novalidate>
+            <input
+              class="comment-input"
+              type="text"
+              maxlength="140"
+              placeholder="写下评论…"
+              aria-label="评论内容"
+              data-role="comment-input" />
+            <button type="submit" class="btn-small">发送</button>
+          </form>
+          <p class="comment-lock" data-role="comment-lock" hidden>
+            <button type="button" class="link-btn js-open-auth">登录</button> 后参与评论
+          </p>
+        </div>
       </div>
     </li>
   </template>
 
-  <script src="app.js"></script>
+  <template id="comment-template">
+    <li class="comment">
+      <div class="avatar avatar-xs" data-role="comment-avatar" aria-hidden="true"></div>
+      <div class="comment-main">
+        <div class="comment-head">
+          <span class="comment-author" data-role="comment-author"></span>
+          <time class="comment-time" data-role="comment-time"></time>
+        </div>
+        <p class="comment-content" data-role="comment-content"></p>
+      </div>
+    </li>
+  </template>
+
+  <template id="profile-item-template">
+    <li class="profile-item">
+      <p class="profile-item-content" data-role="content"></p>
+      <div class="profile-item-foot">
+        <span class="profile-item-meta" data-role="meta"></span>
+        <button type="button" class="link-btn" data-role="jump" hidden>查看原帖</button>
+      </div>
+    </li>
+  </template>
+
+  <dialog class="auth-dialog" id="auth-dialog">
+    <div class="auth-box">
+      <div class="auth-head">
+        <h2 id="auth-title">登录</h2>
+        <button type="button" class="icon-btn" id="auth-close" aria-label="关闭">&times;</button>
+      </div>
+
+      <form id="auth-form" novalidate>
+        <label class="field">
+          <span class="field-label">用户名</span>
+          <input id="auth-username" type="text" maxlength="16" autocomplete="username" placeholder="2–16 位字符" required />
+        </label>
+
+        <label class="field" id="auth-display-field" hidden>
+          <span class="field-label">昵称（可选）</span>
+          <input id="auth-display" type="text" maxlength="16" placeholder="不填则与用户名相同" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">密码</span>
+          <input id="auth-password" type="password" maxlength="64" autocomplete="current-password" placeholder="至少 6 位" required />
+        </label>
+
+        <p class="auth-error" id="auth-error" role="alert"></p>
+
+        <button type="submit" class="btn-primary btn-block" id="auth-submit">登录</button>
+      </form>
+
+      <p class="auth-switch">
+        <span id="auth-switch-label">还没有账号？</span>
+        <button type="button" class="link-btn" id="auth-switch-btn">立即注册</button>
+      </p>
+
+      <p class="auth-note">
+        账号只保存在本机浏览器，未做后端校验，清除站点数据后会一并丢失。
+      </p>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/store.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
