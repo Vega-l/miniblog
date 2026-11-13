@@ -282,7 +282,7 @@ input:focus-visible {
   gap: 26px;
 }
 
-#timeline-view {
+.timeline-view {
   display: flex;
   flex-direction: column;
   gap: 26px;
@@ -555,6 +555,28 @@ textarea::placeholder {
   background: var(--yellow);
   transform: translate(1px, 1px);
   box-shadow: 1px 1px 0 var(--ink);
+}
+
+/* 已点赞 / 已收藏：换底色区分，保留硬阴影与描边 */
+.action-btn.is-active {
+  background: var(--pink);
+}
+
+.action-btn--bookmark.is-active {
+  background: var(--blue);
+}
+
+.action-btn.is-active:hover {
+  background: var(--pink);
+}
+
+.action-btn--bookmark.is-active:hover {
+  background: var(--blue);
+}
+
+.action-btn:disabled {
+  cursor: progress;
+  opacity: 0.7;
 }
 
 .icon {
@@ -942,7 +964,7 @@ textarea::placeholder {
   white-space: nowrap;
 }
 
-#trend-source {
+.trend-source {
   text-align: right;
   max-width: 62%;
 }
@@ -1056,6 +1078,10 @@ textarea::placeholder {
   color: var(--ink-soft);
   background: var(--surface);
   border: 3px dashed var(--ink);
+}
+
+.empty-state-text {
+  margin: 0 0 12px;
 }
 
 .site-footer {

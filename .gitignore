@@ -5,7 +5,16 @@ Desktop.ini
 .vscode/
 .idea/
 
-# 依赖与构建产物（当前项目无构建，留作预防）
+# 依赖与构建产物
 node_modules/
 dist/
+coverage/
 *.log
+*.local
+
+# 并行开发用的 Git Worktree（内部包含各自的 node_modules 链接）
+.worktrees/
+
+# 本机 Agent 工具产物
+.agents/
+skills-lock.json
