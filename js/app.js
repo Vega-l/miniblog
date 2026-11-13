@@ -712,6 +712,16 @@
     renderShell();
     renderTimeline();
     bindEvents();
+
+    if (window.Trending) {
+      window.Trending.mount({
+        listId: 'trend-list',
+        updatedId: 'trend-updated',
+        sourceId: 'trend-source',
+        emptyId: 'trend-empty',
+        refreshId: 'trend-refresh',
+      });
+    }
   }
 
   init();

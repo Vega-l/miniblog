@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Miniblog</title>
   <meta name="description" content="Miniblog —— 账号、动态与评论都存在你浏览器里的小型发布页。" />
-  <meta name="color-scheme" content="dark" />
-  <meta name="theme-color" content="#080a12" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%234f46e5'/%3E%3Ctext x='16' y='22' font-family='sans-serif' font-size='17' font-weight='700' fill='white' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E" />
+  <meta name="color-scheme" content="light" />
+  <meta name="theme-color" content="#f6f1e4" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23ffd43b' stroke='%23111' stroke-width='3'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-size='17' font-weight='900' fill='%23111' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -15,7 +15,7 @@
     <div class="header-inner">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true">M</span>
-        <span class="brand-name">Miniblog</span>
+        <span class="brand-name">MINIBLOG</span>
       </div>
 
       <div class="header-actions">
@@ -32,72 +32,99 @@
   </header>
 
   <main class="layout">
-    <div id="timeline-view">
-      <h1 class="visually-hidden">Miniblog 时间线</h1>
+    <div class="content-col">
+      <div id="timeline-view">
+        <h1 class="visually-hidden">Miniblog 时间线</h1>
 
-      <section class="composer" id="composer-guest" hidden>
-        <div class="composer-locked">
-          <div>
-            <p class="locked-title">登录后即可发布</p>
-            <p class="locked-note">内容只保存在当前浏览器，不会上传到任何服务器</p>
+        <section class="composer" id="composer-guest" hidden>
+          <div class="composer-locked">
+            <div>
+              <p class="locked-title">登录后即可发布</p>
+              <p class="locked-note">内容只保存在当前浏览器，不会上传到任何服务器</p>
+            </div>
+            <button type="button" class="btn-primary js-open-auth">登录 / 注册</button>
           </div>
-          <button type="button" class="btn-primary js-open-auth">登录 / 注册</button>
+        </section>
+
+        <section class="composer" id="composer-user" hidden>
+          <form id="composer-form" novalidate>
+            <div class="composer-body">
+              <div class="avatar" id="composer-avatar" aria-hidden="true">?</div>
+              <textarea
+                id="composer-input"
+                name="content"
+                rows="3"
+                maxlength="280"
+                placeholder="分享此刻的想法…"
+                aria-label="动态内容"></textarea>
+            </div>
+            <div class="composer-actions">
+              <p class="composer-hint" id="composer-notice">最多 280 字 · Ctrl/⌘ + Enter 发布</p>
+              <button type="submit" class="btn-primary" id="publish-btn" disabled>发布</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="timeline" aria-labelledby="timeline-title">
+          <div class="timeline-head">
+            <h2 id="timeline-title">时间线</h2>
+            <span class="timeline-count" id="post-count"></span>
+          </div>
+          <ul class="post-list" id="post-list"></ul>
+          <p class="empty-state" id="empty-state">还没有内容。登录后写下第一条。</p>
+        </section>
+      </div>
+
+      <section class="profile" id="profile-view" hidden aria-labelledby="profile-name">
+        <button type="button" class="btn-ghost back-btn" id="back-btn">
+          <span aria-hidden="true">←</span> 返回时间线
+        </button>
+
+        <div class="profile-card">
+          <div class="avatar avatar-lg" id="profile-avatar" aria-hidden="true">?</div>
+          <div class="profile-info">
+            <h2 id="profile-name"></h2>
+            <p class="profile-handle" id="profile-handle"></p>
+            <p class="profile-meta" id="profile-meta"></p>
+            <p class="profile-stats" id="profile-stats"></p>
+          </div>
         </div>
-      </section>
 
-      <section class="composer" id="composer-user" hidden>
-        <form id="composer-form" novalidate>
-          <div class="composer-body">
-            <div class="avatar" id="composer-avatar" aria-hidden="true">?</div>
-            <textarea
-              id="composer-input"
-              name="content"
-              rows="3"
-              maxlength="280"
-              placeholder="分享此刻的想法…"
-              aria-label="动态内容"></textarea>
-          </div>
-          <div class="composer-actions">
-            <p class="composer-hint" id="composer-notice">最多 280 字 · Ctrl/⌘ + Enter 发布</p>
-            <button type="submit" class="btn-primary" id="publish-btn" disabled>发布</button>
-          </div>
-        </form>
-      </section>
-
-      <section class="timeline" aria-labelledby="timeline-title">
-        <div class="timeline-head">
-          <h2 id="timeline-title">时间线</h2>
-          <span class="timeline-count" id="post-count"></span>
+        <div class="tabs" role="tablist" aria-label="历史记录类型">
+          <button type="button" class="tab is-active" data-tab="posts" role="tab" aria-selected="true">我的帖子</button>
+          <button type="button" class="tab" data-tab="comments" role="tab" aria-selected="false">我的评论</button>
         </div>
-        <ul class="post-list" id="post-list"></ul>
-        <p class="empty-state" id="empty-state">还没有内容。登录后写下第一条。</p>
+
+        <ul class="profile-list" id="profile-posts"></ul>
+        <ul class="profile-list" id="profile-comments" hidden></ul>
+        <p class="empty-state" id="profile-empty" hidden></p>
       </section>
     </div>
 
-    <section class="profile" id="profile-view" hidden aria-labelledby="profile-name">
-      <button type="button" class="btn-ghost back-btn" id="back-btn">
-        <span aria-hidden="true">←</span> 返回时间线
-      </button>
-
-      <div class="profile-card">
-        <div class="avatar avatar-lg" id="profile-avatar" aria-hidden="true">?</div>
-        <div class="profile-info">
-          <h2 id="profile-name"></h2>
-          <p class="profile-handle" id="profile-handle"></p>
-          <p class="profile-meta" id="profile-meta"></p>
-          <p class="profile-stats" id="profile-stats"></p>
+    <aside class="sidebar" aria-labelledby="trending-title">
+      <section class="trend-card">
+        <div class="trend-head">
+          <div class="trend-heading">
+            <span class="trend-kicker">全网热搜</span>
+            <h2 id="trending-title">TOP 10</h2>
+          </div>
+          <button type="button" class="trend-refresh" id="trend-refresh" aria-label="刷新热搜" title="刷新">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4.5h-4.5" fill="none" stroke="currentColor"
+                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
         </div>
-      </div>
 
-      <div class="tabs" role="tablist" aria-label="历史记录类型">
-        <button type="button" class="tab is-active" data-tab="posts" role="tab" aria-selected="true">我的帖子</button>
-        <button type="button" class="tab" data-tab="comments" role="tab" aria-selected="false">我的评论</button>
-      </div>
+        <ol class="trend-list" id="trend-list"></ol>
+        <p class="trend-empty" id="trend-empty" hidden>暂时没有数据</p>
 
-      <ul class="profile-list" id="profile-posts"></ul>
-      <ul class="profile-list" id="profile-comments" hidden></ul>
-      <p class="empty-state" id="profile-empty" hidden></p>
-    </section>
+        <div class="trend-foot">
+          <span id="trend-updated">—</span>
+          <span id="trend-source"></span>
+        </div>
+      </section>
+    </aside>
   </main>
 
   <footer class="site-footer">
@@ -209,6 +236,7 @@
 
   <script src="js/store.js"></script>
   <script src="js/auth.js"></script>
+  <script src="js/trending.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
