@@ -87,6 +87,7 @@ export interface ApiClient {
   posts(authorId?: string): Promise<Post[]>;
   post(postId: string): Promise<Post>;
   createPost(content: string): Promise<Post>;
+  deletePost(postId: string): Promise<void>;
   comments(postId: string): Promise<Comment[]>;
   allComments(): Promise<Comment[]>;
   commentsBy(authorId: string): Promise<Comment[]>;
@@ -183,6 +184,10 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
       const body: CreatePostRequest = { content };
       const payload = await request<PostPayload>('/posts', { body });
       return payload.post;
+    },
+
+    async deletePost(postId) {
+      await request<void>(`/posts/${encodeURIComponent(postId)}`, { method: 'DELETE' });
     },
 
     async comments(postId) {

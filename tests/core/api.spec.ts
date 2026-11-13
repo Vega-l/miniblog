@@ -304,6 +304,17 @@ describe('createApiClient · 点赞与收藏', () => {
   });
 });
 
+describe('createApiClient · 删除帖子', () => {
+  it('deletePost 走 DELETE /api/posts/:id，204 不读取响应体', async () => {
+    const { api, calls } = setup(jsonResponse(null, 204));
+
+    await expect(api.deletePost('p 1')).resolves.toBeUndefined();
+    expect(calls[0].url).toBe('/api/posts/p%201');
+    expect(calls[0].init.method).toBe('DELETE');
+    expect(calls[0].init.body).toBeUndefined();
+  });
+});
+
 describe('apiClient 单例', () => {
   it('默认复用同一个实例，可被替换', () => {
     configureApiClient(null);

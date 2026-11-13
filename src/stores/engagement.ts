@@ -64,6 +64,16 @@ export const useEngagementStore = defineStore('engagement', () => {
     return bookmarks.value.some((bookmark) => bookmark.postId === postId);
   }
 
+  /** 帖子被删除后，本地也要立刻忘掉它的计数、点赞与收藏。 */
+  function forgetPost(postId: string): void {
+    const nextCounts = { ...likeCounts.value };
+    delete nextCounts[postId];
+
+    likeCounts.value = nextCounts;
+    likedPostIds.value = likedPostIds.value.filter((id) => id !== postId);
+    bookmarks.value = bookmarks.value.filter((bookmark) => bookmark.postId !== postId);
+  }
+
   async function toggleLike(postId: string): Promise<ToggleResult> {
     const liked = isLiked(postId);
 
@@ -120,6 +130,7 @@ export const useEngagementStore = defineStore('engagement', () => {
     likeCountOf,
     isLiked,
     isBookmarked,
+    forgetPost,
     toggleLike,
     toggleBookmark,
   };

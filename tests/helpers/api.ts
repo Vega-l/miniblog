@@ -49,6 +49,7 @@ export interface MockApi {
   allComments: AnyMock;
   commentsBy: AnyMock;
   createComment: AnyMock;
+  deletePost: AnyMock;
   engagement: AnyMock;
   like: AnyMock;
   unlike: AnyMock;
@@ -224,6 +225,18 @@ export function createMockApi(seed: MockApiSeed = {}): MockApi {
       };
       state.comments.push(comment);
       return comment;
+    }),
+
+    deletePost: vi.fn(async (postId: string) => {
+      const user = requireUser();
+      const post = state.posts.find((item) => item.id === postId);
+      if (!post) failPostMissing();
+      if (post.authorId !== user.id) fail('UNAUTHORIZED');
+
+      state.posts = state.posts.filter((item) => item.id !== postId);
+      state.comments = state.comments.filter((comment) => comment.postId !== postId);
+      state.likes = state.likes.filter((like) => like.postId !== postId);
+      state.bookmarks = state.bookmarks.filter((bookmark) => bookmark.postId !== postId);
     }),
 
     engagement: vi.fn(async (): Promise<EngagementSummary> => {
