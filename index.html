@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Miniblog</title>
+  <meta name="description" content="Miniblog —— 一个只把数据存在你浏览器里的小型动态发布页。" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%234f46e5'/%3E%3Ctext x='16' y='22' font-family='sans-serif' font-size='17' font-weight='700' fill='white' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span class="brand-name">Miniblog</span>
+      </div>
+      <span class="header-note">只存在本机浏览器</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <h1 class="visually-hidden">Miniblog 动态发布页</h1>
+
+    <section class="composer">
+      <form id="composer-form" novalidate>
+        <div class="composer-body">
+          <div class="avatar" aria-hidden="true">G</div>
+          <textarea
+            id="composer-input"
+            name="content"
+            rows="3"
+            maxlength="280"
+            placeholder="分享此刻的想法…"
+            aria-label="动态内容"
+            required></textarea>
+        </div>
+        <div class="composer-actions">
+          <p class="composer-hint" id="composer-notice">最多 280 字 · Ctrl/⌘ + Enter 发布</p>
+          <button type="submit" class="btn-primary" id="publish-btn" disabled>发布</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="timeline" aria-labelledby="timeline-title">
+      <div class="timeline-head">
+        <h2 id="timeline-title">时间线</h2>
+        <span class="timeline-count" id="post-count"></span>
+      </div>
+      <ul class="post-list" id="post-list"></ul>
+      <p class="empty-state" id="empty-state">还没有内容。写下第一条，它会保存在这台设备的浏览器里。</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Miniblog · 纯 HTML / CSS / JavaScript · 数据保存在 LocalStorage</p>
+  </footer>
+
+  <template id="post-template">
+    <li class="post">
+      <div class="avatar" aria-hidden="true"></div>
+      <div class="post-main">
+        <div class="post-head">
+          <span class="post-author"></span>
+          <span class="post-handle"></span>
+          <time class="post-time"></time>
+        </div>
+        <p class="post-content"></p>
+      </div>
+    </li>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
