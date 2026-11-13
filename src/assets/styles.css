@@ -579,6 +579,45 @@ textarea::placeholder {
   opacity: 0.7;
 }
 
+.action-btn--delete:hover {
+  background: var(--pink);
+}
+
+/* 删除前先就地确认，避免误触 */
+.post-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 2px solid var(--ink);
+  background: #fff5f7;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.post-confirm-text {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.post-confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-danger {
+  background: var(--pink);
+  color: var(--ink);
+}
+
+.btn-cancel {
+  background: var(--surface);
+  color: var(--ink);
+}
+
 .icon {
   width: 15px;
   height: 15px;

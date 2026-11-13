@@ -21,6 +21,8 @@ const draft = ref('');
 const submitting = ref(false);
 const likeBusy = ref(false);
 const bookmarkBusy = ref(false);
+const confirmingDelete = ref(false);
+const deleting = ref(false);
 
 const author = computed(() => authorOf(props.post.authorId, auth.users));
 const open = computed(() => ui.isCommentsOpen(props.post.id));
@@ -30,6 +32,7 @@ const highlighted = computed(() => ui.highlightPostId === props.post.id);
 const liked = computed(() => engagement.isLiked(props.post.id));
 const likeCount = computed(() => engagement.likeCountOf(props.post.id));
 const bookmarked = computed(() => engagement.isBookmarked(props.post.id));
+const canDelete = computed(() => auth.currentUser?.id === props.post.authorId);
 
 const isoTime = computed(() => {
   const date = new Date(props.post.createdAt);
@@ -91,6 +94,25 @@ async function toggleBookmark(): Promise<void> {
     );
   } finally {
     bookmarkBusy.value = false;
+  }
+}
+
+async function confirmDelete(): Promise<void> {
+  if (deleting.value) return;
+
+  deleting.value = true;
+  try {
+    const result = await blog.removePost(props.post.id);
+    if (!result.ok) {
+      ui.showToast(result.error ?? '删除失败');
+      return;
+    }
+
+    engagement.forgetPost(props.post.id);
+    ui.showToast('已删除');
+  } finally {
+    deleting.value = false;
+    confirmingDelete.value = false;
   }
 }
 
@@ -194,6 +216,43 @@ async function submitComment(): Promise<void> {
           </svg>
           <span>{{ count > 0 ? count : '评论' }}</span>
         </button>
+
+        <button
+          v-if="canDelete"
+          type="button"
+          class="action-btn action-btn--delete"
+          aria-label="删除帖子"
+          @click="confirmingDelete = true"
+        >
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M5 7h14M9 7V5h6v2M7 7l1 13h8l1-13"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span>删除</span>
+        </button>
+      </div>
+
+      <div v-if="confirmingDelete" class="post-confirm" role="alertdialog" aria-label="确认删除">
+        <p class="post-confirm-text">删除后不可恢复，确定吗？</p>
+        <div class="post-confirm-actions">
+          <button type="button" class="btn-small btn-danger" :disabled="deleting" @click="confirmDelete">
+            {{ deleting ? '删除中…' : '确认删除' }}
+          </button>
+          <button
+            type="button"
+            class="btn-small btn-cancel"
+            :disabled="deleting"
+            @click="confirmingDelete = false"
+          >
+            取消
+          </button>
+        </div>
       </div>
 
       <div v-if="open" class="comments">

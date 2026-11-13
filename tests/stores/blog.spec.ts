@@ -11,6 +11,61 @@ afterEach(() => {
   resetMockApi();
 });
 
+describe('useBlogStore.removePost', () => {
+  it('删除成功后同时移除帖子与其评论', async () => {
+    const api = installMockApi({
+      currentUser: sampleUser(),
+      posts: [samplePost(), samplePost({ id: 'p2', content: '保留' })],
+      comments: [
+        sampleComment(),
+        sampleComment({ id: 'c2', postId: 'p2', content: '另一条' }),
+      ],
+    });
+    installPinia();
+    const blog = useBlogStore();
+    blog.posts = [samplePost(), samplePost({ id: 'p2', content: '保留' })];
+    blog.comments = [
+      sampleComment(),
+      sampleComment({ id: 'c2', postId: 'p2', content: '另一条' }),
+    ];
+
+    const result = await blog.removePost('p1');
+
+    expect(result).toEqual({ ok: true });
+    expect(api.deletePost).toHaveBeenCalledWith('p1');
+    expect(blog.posts.map((post) => post.id)).toEqual(['p2']);
+    expect(blog.comments.map((comment) => comment.id)).toEqual(['c2']);
+  });
+
+  it('删除失败时返回可读错误，帖子与评论保持不变', async () => {
+    const api = installMockApi({ currentUser: sampleUser() });
+    installPinia();
+    const blog = useBlogStore();
+    blog.posts = [samplePost()];
+    blog.comments = [sampleComment()];
+    api.deletePost.mockRejectedValueOnce(new ApiError('UNAUTHORIZED', '只能删除自己的帖子', 403));
+
+    const result = await blog.removePost('p1');
+
+    expect(result).toEqual({ ok: false, error: '只能删除自己的帖子' });
+    expect(blog.posts).toHaveLength(1);
+    expect(blog.comments).toHaveLength(1);
+  });
+
+  it('无接口文案时回退到通用提示', async () => {
+    const api = installMockApi({ currentUser: sampleUser() });
+    installPinia();
+    const blog = useBlogStore();
+    blog.posts = [samplePost()];
+    api.deletePost.mockRejectedValueOnce(new ApiError('INTERNAL', '', 500));
+
+    await expect(blog.removePost('p1')).resolves.toEqual({
+      ok: false,
+      error: '删除失败，请稍后重试',
+    });
+  });
+});
+
 describe('useBlogStore.hydrate', () => {
   it('载入帖子与评论，帖子倒序、评论正序', async () => {
     installMockApi({

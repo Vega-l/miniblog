@@ -5,6 +5,7 @@ import PostItem from '@/components/PostItem.vue';
 import { ApiError } from '@/core/api';
 import { useAuthStore } from '@/stores/auth';
 import { useBlogStore } from '@/stores/blog';
+import { useEngagementStore } from '@/stores/engagement';
 import { useUiStore } from '@/stores/ui';
 import { installMockApi, resetMockApi } from '../helpers/api';
 import { samplePost, sampleUser } from '../helpers/fixtures';
@@ -256,6 +257,95 @@ describe('PostItem · 点赞与收藏', () => {
 
     expect(useUiStore().toastMessage).toBe('点赞失败，请稍后重试');
     expect(wrapper.get('.action-btn--like').attributes('aria-pressed')).toBe('false');
+    wrapper.unmount();
+  });
+});
+
+describe('PostItem · 删除自己的帖子', () => {
+  function mountOwnPost() {
+    const post = samplePost();
+    const api = installMockApi({
+      users: [sampleUser()],
+      posts: [post],
+      currentUser: sampleUser(),
+    });
+    installPinia();
+    const auth = useAuthStore();
+    const blog = useBlogStore();
+    const engagement = useEngagementStore();
+    auth.users = [sampleUser()];
+    auth.currentUser = sampleUser();
+    blog.posts = [post];
+
+    const wrapper = mountWithPinia(PostItem, { props: { post } });
+    return { api, blog, engagement, wrapper };
+  }
+
+  it('只有作者自己的帖子才显示删除按钮', () => {
+    installMockApi({
+      users: [sampleUser()],
+      posts: [samplePost({ authorId: 'u2' })],
+      currentUser: sampleUser(),
+    });
+    installPinia();
+    const auth = useAuthStore();
+    auth.users = [sampleUser(), sampleUser({ id: 'u2', username: 'bob', displayName: '鲍勃' })];
+    auth.currentUser = sampleUser();
+    const post = samplePost({ authorId: 'u2' });
+
+    const wrapper = mountWithPinia(PostItem, { props: { post } });
+
+    expect(wrapper.find('.action-btn--delete').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('点击删除先二次确认，取消后不调用接口', async () => {
+    const { api, wrapper } = mountOwnPost();
+
+    expect(wrapper.find('.post-confirm').exists()).toBe(false);
+    await wrapper.get('.action-btn--delete').trigger('click');
+
+    expect(wrapper.get('.post-confirm').text()).toContain('删除后不可恢复');
+    expect(api.deletePost).not.toHaveBeenCalled();
+
+    await wrapper.get('.post-confirm .btn-cancel').trigger('click');
+
+    expect(wrapper.find('.post-confirm').exists()).toBe(false);
+    expect(api.deletePost).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('确认删除后清理帖子、评论与互动状态，并提示已删除', async () => {
+    const { api, blog, engagement, wrapper } = mountOwnPost();
+    engagement.likeCounts = { p1: 3 };
+    engagement.likedPostIds = ['p1'];
+    engagement.bookmarks = [{ postId: 'p1', createdAt: 1 }];
+
+    await wrapper.get('.action-btn--delete').trigger('click');
+    await wrapper.get('.post-confirm .btn-danger').trigger('click');
+    await flushPromises();
+
+    expect(api.deletePost).toHaveBeenCalledWith('p1');
+    expect(blog.posts).toEqual([]);
+    expect(blog.comments.filter((comment) => comment.postId === 'p1')).toEqual([]);
+    expect(engagement.likeCountOf('p1')).toBe(0);
+    expect(engagement.isLiked('p1')).toBe(false);
+    expect(engagement.isBookmarked('p1')).toBe(false);
+    expect(useUiStore().toastMessage).toBe('已删除');
+    wrapper.unmount();
+  });
+
+  it('删除失败时提示错误并保留帖子', async () => {
+    const { api, blog, wrapper } = mountOwnPost();
+    api.deletePost.mockRejectedValueOnce(new ApiError('INTERNAL', '', 500));
+
+    await wrapper.get('.action-btn--delete').trigger('click');
+    await wrapper.get('.post-confirm .btn-danger').trigger('click');
+    await flushPromises();
+
+    expect(useUiStore().toastMessage).toBe('删除失败，请稍后重试');
+    expect(blog.posts).toHaveLength(1);
+    expect(wrapper.find('.post-confirm').exists()).toBe(false);
     wrapper.unmount();
   });
 });

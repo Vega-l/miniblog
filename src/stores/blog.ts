@@ -71,6 +71,18 @@ export const useBlogStore = defineStore('blog', () => {
     }
   }
 
+  /** 删除成功后才从本地移除；失败保持原样，避免「界面没了、服务端还在」。 */
+  async function removePost(postId: string): Promise<WriteResult> {
+    try {
+      await api.deletePost(postId);
+      posts.value = posts.value.filter((post) => post.id !== postId);
+      comments.value = comments.value.filter((comment) => comment.postId !== postId);
+      return { ok: true };
+    } catch (caught) {
+      return { ok: false, error: apiErrorMessage(caught, '删除失败，请稍后重试') };
+    }
+  }
+
   async function addComment(postId: string, content: string): Promise<WriteResult> {
     const trimmed = content.trim();
     if (!trimmed) return { ok: false, error: '请输入评论' };
@@ -111,6 +123,7 @@ export const useBlogStore = defineStore('blog', () => {
     error,
     hydrate,
     createPost,
+    removePost,
     addComment,
     commentsOf,
     commentCountOf,
