@@ -29,7 +29,7 @@ export interface CreateAppOptions {
 }
 
 /** 错误响应只会用到这些状态码。 */
-type ErrorStatus = 400 | 401 | 404 | 409 | 500;
+type ErrorStatus = 400 | 401 | 403 | 404 | 409 | 500;
 
 export function createApp(options: CreateAppOptions = {}) {
   const store = options.store ?? createMemoryStore({ clock: options.clock, makeId: options.makeId });
@@ -201,6 +201,19 @@ export function createApp(options: CreateAppOptions = {}) {
     const post = store.findPost(c.req.param('postId'));
     if (!post) return fail(c, 'NOT_FOUND', '帖子不存在');
     return c.json({ post });
+  });
+
+  app.delete('/api/posts/:postId', (c) => {
+    const user = sessionUser(c);
+    if (!user) return fail(c, 'UNAUTHORIZED');
+
+    const postId = c.req.param('postId');
+    const post = store.findPost(postId);
+    if (!post) return fail(c, 'NOT_FOUND', '帖子不存在');
+    if (post.authorId !== user.id) return fail(c, 'FORBIDDEN', '只能删除自己的帖子');
+
+    store.deletePost(postId);
+    return c.body(null, 204);
   });
 
   app.get('/api/posts/:postId/comments', (c) => {

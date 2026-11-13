@@ -89,6 +89,7 @@ export type ApiErrorCode =
   | 'USERNAME_TAKEN'
   | 'INVALID_CREDENTIALS'
   | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
   | 'NOT_FOUND'
   | 'INTERNAL';
 
@@ -168,6 +169,7 @@ export const API_ERRORS: Record<ApiErrorCode, { status: number; message: string 
   USERNAME_TAKEN: { status: 409, message: '该用户名已被占用' },
   INVALID_CREDENTIALS: { status: 401, message: '用户名或密码不正确' },
   UNAUTHORIZED: { status: 401, message: '请先登录' },
+  FORBIDDEN: { status: 403, message: '没有权限执行该操作' },
   NOT_FOUND: { status: 404, message: '资源不存在' },
   INTERNAL: { status: 500, message: '服务器内部错误' },
 };

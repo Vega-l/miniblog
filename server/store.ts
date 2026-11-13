@@ -48,6 +48,8 @@ export interface MemoryStore {
   listPosts(filter?: PostFilter): Post[];
   findPost(postId: string): Post | null;
   addPost(post: Post): Post;
+  /** 删除帖子，并级联清理它的评论、点赞与所有人的收藏。 */
+  deletePost(postId: string): boolean;
 
   listComments(filter?: CommentFilter): Comment[];
   addComment(comment: Comment): Comment;
@@ -182,6 +184,31 @@ export function createMemoryStore(options: StoreOptions = {}): MemoryStore {
       posts.push(post);
       remember(post.id);
       return { ...post };
+    },
+    deletePost(postId) {
+      const index = posts.findIndex((post) => post.id === postId);
+      if (index === -1) return false;
+
+      posts.splice(index, 1);
+      order.delete(postId);
+
+      // 评论一并删除，避免留下永远无法定位的孤儿数据
+      for (let cursor = comments.length - 1; cursor >= 0; cursor -= 1) {
+        const comment = comments[cursor];
+        if (comment.postId !== postId) continue;
+        order.delete(comment.id);
+        comments.splice(cursor, 1);
+      }
+
+      likes.delete(postId);
+
+      for (const [userId, own] of bookmarks) {
+        if (!own.delete(postId)) continue;
+        order.delete(bookmarkOrderKey(userId, postId));
+        if (own.size === 0) bookmarks.delete(userId);
+      }
+
+      return true;
     },
 
     listComments,
