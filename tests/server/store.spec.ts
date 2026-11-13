@@ -180,3 +180,57 @@ describe('收藏', () => {
     expect(store.listBookmarks('u3')).toEqual([]);
   });
 });
+
+describe('删除帖子', () => {
+  it('删除帖子时级联清理评论、点赞与收藏', () => {
+    const { store, clock } = createStore();
+    const doomed = store.addPost({
+      id: store.makeId('post'),
+      authorId: 'u1',
+      content: '待删除',
+      createdAt: clock.now,
+    });
+    const kept = store.addPost({
+      id: store.makeId('post'),
+      authorId: 'u1',
+      content: '保留',
+      createdAt: clock.now,
+    });
+    store.addComment({
+      id: 'c1',
+      postId: doomed.id,
+      authorId: 'u2',
+      content: '会被一起删掉',
+      createdAt: clock.now,
+    });
+    store.addComment({
+      id: 'c2',
+      postId: kept.id,
+      authorId: 'u1',
+      content: '不受影响',
+      createdAt: clock.now,
+    });
+    store.addLike({ postId: doomed.id, userId: 'u2', createdAt: clock.now });
+    store.addLike({ postId: kept.id, userId: 'u2', createdAt: clock.now });
+    store.addBookmark({ postId: doomed.id, userId: 'u2', createdAt: clock.now });
+    store.addBookmark({ postId: kept.id, userId: 'u2', createdAt: clock.now });
+
+    expect(store.deletePost(doomed.id)).toBe(true);
+
+    expect(store.findPost(doomed.id)).toBeNull();
+    expect(store.listPosts().map((post) => post.id)).toEqual([kept.id]);
+    expect(store.listComments({ postId: doomed.id })).toEqual([]);
+    expect(store.listComments().map((comment) => comment.id)).toEqual(['c2']);
+    expect(store.countLikes(doomed.id)).toBe(0);
+    expect(store.listLikeCounts()).toEqual({ [kept.id]: 1 });
+    expect(store.listBookmarks('u2').map((bookmark) => bookmark.postId)).toEqual([kept.id]);
+  });
+
+  it('帖子不存在时返回 false，其他数据不受影响', () => {
+    const { store, clock } = createStore();
+    store.addPost({ id: 'p1', authorId: 'u1', content: '还在', createdAt: clock.now });
+
+    expect(store.deletePost('missing')).toBe(false);
+    expect(store.listPosts()).toHaveLength(1);
+  });
+});

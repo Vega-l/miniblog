@@ -787,3 +787,73 @@ describe('通用错误处理', () => {
     ).toBeNull();
   });
 });
+
+describe('DELETE /api/posts/:postId', () => {
+  async function publish(app: App, cookie: string, content = '待删除的帖子'): Promise<Post> {
+    const res = await call(app, '/api/posts', { cookie, body: { content } });
+    return ((await res.json()) as { post: Post }).post;
+  }
+
+  it('未登录 → 401 UNAUTHORIZED', async () => {
+    const { app } = createHarness();
+    const res = await call(app, '/api/posts/post_1', { method: 'DELETE' });
+
+    expect(res.status).toBe(401);
+    expect(((await res.json()) as ApiErrorBody).error.code).toBe('UNAUTHORIZED');
+  });
+
+  it('帖子不存在 → 404 NOT_FOUND', async () => {
+    const harness = createHarness();
+    const cookie = await signUp(harness.app);
+
+    const res = await call(harness.app, '/api/posts/post_missing', { method: 'DELETE', cookie });
+
+    expect(res.status).toBe(404);
+    expect(((await res.json()) as ApiErrorBody).error.code).toBe('NOT_FOUND');
+  });
+
+  it('非作者删除 → 403 FORBIDDEN，帖子保持原样', async () => {
+    const harness = createHarness();
+    const alice = await signUp(harness.app, { username: 'alice' });
+    const post = await publish(harness.app, alice);
+    const bob = await signUp(harness.app, { username: 'bob' });
+
+    const res = await call(harness.app, `/api/posts/${post.id}`, { method: 'DELETE', cookie: bob });
+
+    expect(res.status).toBe(403);
+    expect(((await res.json()) as ApiErrorBody).error.code).toBe('FORBIDDEN');
+    expect((await call(harness.app, `/api/posts/${post.id}`)).status).toBe(200);
+  });
+
+  it('作者删除 → 204，并级联清理评论、点赞与收藏', async () => {
+    const harness = createHarness();
+    const alice = await signUp(harness.app, { username: 'alice' });
+    const post = await publish(harness.app, alice);
+    const bob = await signUp(harness.app, { username: 'bob' });
+
+    await call(harness.app, `/api/posts/${post.id}/comments`, {
+      cookie: bob,
+      body: { content: '好帖' },
+    });
+    await call(harness.app, `/api/posts/${post.id}/like`, { method: 'PUT', cookie: bob });
+    await call(harness.app, `/api/posts/${post.id}/bookmark`, { method: 'PUT', cookie: bob });
+
+    const res = await call(harness.app, `/api/posts/${post.id}`, {
+      method: 'DELETE',
+      cookie: alice,
+    });
+
+    expect(res.status).toBe(204);
+    expect(await res.text()).toBe('');
+    expect((await call(harness.app, `/api/posts/${post.id}`)).status).toBe(404);
+    expect(
+      ((await (await call(harness.app, '/api/posts')).json()) as { posts: Post[] }).posts
+    ).toEqual([]);
+
+    const engagement = (await (
+      await call(harness.app, '/api/engagement', { cookie: bob })
+    ).json()) as { engagement: EngagementSummary };
+    expect(engagement.engagement.likeCounts).toEqual({});
+    expect(engagement.engagement.bookmarks).toEqual([]);
+  });
+});
