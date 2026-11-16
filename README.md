@@ -3,7 +3,7 @@
 一个前后端分离的小型发布页：Vue 3 + Pinia 前端，Hono 提供的 RESTful 后端，数据存在服务端内存里。
 浏览器不再保存任何业务数据，刷新页面靠 Cookie 会话保持登录。
 
-项目以 TDD 方式推进：`tests/` 下的 182 个用例先于实现编写，覆盖路由契约、校验与错误码、内存存储、API 客户端错误映射、store 并发与回滚、组件交互。
+项目以 TDD 方式推进：`tests/` 下的 196 个用例先于实现编写，覆盖路由契约、校验与错误码、内存存储、API 客户端错误映射、store 并发与回滚、组件交互。
 
 ## 功能
 
@@ -13,6 +13,7 @@
 - **评论**：每条动态可展开评论，评论上限 140 字，实时更新评论数
 - **点赞**：登录后可点赞/取消点赞，重复提交幂等，计数对所有访客可见
 - **收藏**：登录后可收藏/取消收藏；个人主页「我的收藏」按收藏时间倒序，可一键定位原帖
+- **删除**：作者可删除自己的帖子，操作前二次确认；评论、点赞与所有人的收藏同时清理
 - **个人主页**：查看自己发过的帖子、发表过的评论和收藏的帖子，评论与收藏都能定位回原帖
 - **游客浏览**：未登录可以看时间线和评论，点发布、评论、点赞或收藏时引导登录
 - **持久化**：数据在 API 进程的内存里，刷新页面、重开标签页都还在；重启 API 进程后清空
@@ -20,7 +21,7 @@
 - **布局**：双栏（主内容 + 侧栏），1040px 以下侧栏自动沉到内容下方
 - **视觉**：新粗野主义 —— 米黄纸感底、3px 黑描边、无模糊硬阴影、黄粉蓝撞色
 
-不含删除、编辑资料、多设备同步。
+不含编辑资料、多设备同步、回收站（删除不可恢复）。
 
 ## 技术栈
 
@@ -47,7 +48,7 @@ miniblog/
 ├── server/                 # Hono RESTful 后端
 │   ├── app.ts              # createApp()：全部路由、会话、统一错误处理
 │   ├── index.ts            # @hono/node-server 启动入口（默认 8787）
-│   ├── store.ts            # createMemoryStore()：users / posts / comments / sessions
+│   ├── store.ts            # createMemoryStore()：users / posts / comments / likes / bookmarks / sessions
 │   ├── password.ts         # 随机盐 + SHA-256 + 常量时间比较
 │   └── validation.ts       # 用户名 / 昵称 / 密码 / 内容校验
 ├── scripts/dev.mjs         # 一条命令同时拉起 API 与 Vite
@@ -111,6 +112,7 @@ npm run dev:web     # 只启动前端
 | GET | `/api/posts?authorId=` | 否 | 200 `{ posts }`（倒序） | - |
 | POST | `/api/posts` | 是 | 201 `{ post }` | 401 `UNAUTHORIZED` / 400 `INVALID_INPUT` |
 | GET | `/api/posts/:postId` | 否 | 200 `{ post }` | 404 `NOT_FOUND` |
+| DELETE | `/api/posts/:postId` | 是 | 204（同时清理评论/点赞/收藏） | 401 / 403 `FORBIDDEN` / 404 |
 | GET | `/api/posts/:postId/comments` | 否 | 200 `{ comments }`（正序） | 404 `NOT_FOUND` |
 | POST | `/api/posts/:postId/comments` | 是 | 201 `{ comment }` | 401 / 404 / 400 |
 | GET | `/api/comments?authorId=` | 否 | 200 `{ comments }`（正序） | - |
@@ -126,7 +128,7 @@ npm run dev:web     # 只启动前端
 { "error": { "code": "INVALID_INPUT", "message": "请输入内容" } }
 ```
 
-错误码：`INVALID_INPUT`(400)、`INVALID_CREDENTIALS`(401)、`UNAUTHORIZED`(401)、`NOT_FOUND`(404)、`USERNAME_TAKEN`(409)、`INTERNAL`(500)，请求体超过 16KB 返回 413。未捕获异常只回「服务器内部错误」，堆栈仅进服务端日志。
+错误码：`INVALID_INPUT`(400)、`INVALID_CREDENTIALS`(401)、`UNAUTHORIZED`(401)、`FORBIDDEN`(403)、`NOT_FOUND`(404)、`USERNAME_TAKEN`(409)、`INTERNAL`(500)，请求体超过 16KB 返回 413。未捕获异常只回「服务器内部错误」，堆栈仅进服务端日志。
 
 `shared/contract.ts` 是前后端唯一的契约来源：长度上限、用户名校验正则、DTO、错误码与对应状态码都在这里，改一处两边同时生效。
 
@@ -144,10 +146,11 @@ curl -i -c cookie.txt -H 'Content-Type: application/json' \
   -d '{"username":"alice","password":"secret123"}' http://localhost:5173/api/users
 curl -i -b cookie.txt -H 'Content-Type: application/json' \
   -d '{"content":"第一条动态"}' http://localhost:5173/api/posts
-# 点赞 / 收藏（把 <postId> 换成上一步返回的 id）
+# 点赞 / 收藏 / 删除（把 <postId> 换成上一步返回的 id）
 curl -i -b cookie.txt -X PUT http://localhost:5173/api/posts/<postId>/like
 curl -i -b cookie.txt -X PUT http://localhost:5173/api/posts/<postId>/bookmark
 curl -i -b cookie.txt http://localhost:5173/api/engagement
+curl -i -b cookie.txt -X DELETE http://localhost:5173/api/posts/<postId>
 ```
 
 ## 数据与校验
@@ -157,6 +160,7 @@ curl -i -b cookie.txt http://localhost:5173/api/engagement
 - 用户名 2–16 位汉字/字母/数字/下划线，大小写不敏感唯一；密码 6–64 位；昵称 ≤ 16 字，缺省等于用户名
 - 帖子与评论 trim 后按上限截断（280 / 140），trim 后为空返回 400
 - 帖子按 `createdAt` 倒序、同毫秒按创建顺序稳定；评论正序
+- 删除帖子只能由作者发起（403 `FORBIDDEN`），并级联删除该帖的评论、点赞与所有人的收藏，不留孤儿数据
 - 点赞按「帖子 + 用户」去重，收藏同理；重复 `PUT` 幂等，`DELETE` 不存在的记录也返回成功
 - 点赞总数对所有人可见；`likedPostIds` 与 `bookmarks` 只返回当前会话用户的数据，游客拿到空数组
 - 收藏按 `createdAt` 倒序，同毫秒按收藏顺序倒序
@@ -170,6 +174,7 @@ curl -i -b cookie.txt http://localhost:5173/api/engagement
 - `hydrate()` 带请求序号，并与本地新增项按 `id` 合并：请求在途时刚发布的帖子不会被旧快照覆盖
 - `useEngagementStore` 负责点赞与收藏：`hydrate()` 只采纳最后一次响应，登录后重新拉取、退出登录立即清空
 - 点赞/收藏以服务端返回的计数与状态为准，失败只提示、不做乐观更新，避免界面与后端不一致
+- 删除同样以 204 为准：成功后才移除帖子、它的评论与本地互动状态；失败保留原样并提示
 - 失败时保留旧数据并给出可读提示，避免「界面有、刷新就没」
 
 ## 热搜数据
@@ -192,7 +197,7 @@ curl -i -b cookie.txt http://localhost:5173/api/engagement
 
 ## TDD 分层
 
-1. `server/` 用例用 `app.request()` 直接驱动 Hono，注入固定时钟与 ID 生成器，覆盖 400/401/404/409/413/500 与 Cookie 属性、会话过期边界
+1. `server/` 用例用 `app.request()` 直接驱动 Hono，注入固定时钟与 ID 生成器，覆盖 400/401/403/404/409/413/500 与 Cookie 属性、会话过期边界
 2. `core/api.ts` 用鸭子类型的 `fetch` 替身，覆盖 16 个方法的 URL/方法/请求体、204 不读 body、错误码映射、非 JSON 错误体、网络异常
 3. store 用例使用 `tests/helpers/api.ts` 里的有状态假后端（校验规则与真实服务端对齐），可单独注入某个方法失败
 4. 组件测试只断言用户可见行为（按钮禁用、文案、评论数、弹窗开合与 `showModal` 调用），不依赖内部实现
