@@ -18,3 +18,6 @@ coverage/
 # 本机 Agent 工具产物
 .agents/
 skills-lock.json
+
+# 浏览器验收截图与快照
+.playwright-cli/

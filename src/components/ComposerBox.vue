@@ -12,6 +12,10 @@ const ui = useUiStore();
 
 const DEFAULT_NOTICE = `最多 ${LIMITS.post} 字 · Ctrl/⌘ + Enter 发布`;
 
+// 字数刻度：把上限切成固定格数，一眼看出还剩多少
+const BLOCKS = 12;
+const WARN_RATIO = 0.9;
+
 const content = ref('');
 const notice = ref(DEFAULT_NOTICE);
 const noticeIsError = ref(false);
@@ -21,6 +25,9 @@ const initial = computed(() => initialOf(auth.currentUser));
 const canPublish = computed(
   () => Boolean(auth.currentUser) && content.value.trim().length > 0 && !submitting.value
 );
+const usedLength = computed(() => content.value.length);
+const litBlocks = computed(() => Math.ceil((usedLength.value / LIMITS.post) * BLOCKS));
+const nearLimit = computed(() => usedLength.value >= LIMITS.post * WARN_RATIO);
 
 function resetNotice(): void {
   notice.value = DEFAULT_NOTICE;
@@ -91,7 +98,18 @@ function onKeydown(event: KeyboardEvent): void {
         ></textarea>
       </div>
       <div class="composer-actions">
-        <p class="composer-hint" :class="{ 'is-error': noticeIsError }">{{ notice }}</p>
+        <div class="composer-status">
+          <p class="composer-hint" :class="{ 'is-error': noticeIsError }">{{ notice }}</p>
+          <div class="composer-meter" :class="{ 'is-warn': nearLimit }" aria-hidden="true">
+            <span
+              v-for="block in BLOCKS"
+              :key="block"
+              class="meter-block"
+              :class="{ 'is-on': block <= litBlocks }"
+            ></span>
+            <span class="meter-count">{{ usedLength }}/{{ LIMITS.post }}</span>
+          </div>
+        </div>
         <button type="submit" class="btn-primary" :disabled="!canPublish">
           {{ submitting ? '发布中…' : '发布' }}
         </button>

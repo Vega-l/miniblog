@@ -20,6 +20,8 @@ void Promise.all([auth.hydrate(), blog.hydrate(), engagement.hydrate()]);
 </script>
 
 <template>
+  <div class="scroll-progress" aria-hidden="true"></div>
+
   <SiteHeader />
 
   <main class="layout">

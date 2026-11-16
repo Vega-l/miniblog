@@ -36,12 +36,42 @@ body {
   line-height: 1.6;
   color: var(--ink);
   background-color: var(--paper);
+  background-image: linear-gradient(rgba(17, 17, 17, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 17, 17, 0.04) 1px, transparent 1px);
+  background-size: 26px 26px, 26px 26px;
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
   background: var(--yellow);
   color: var(--ink);
+}
+
+/* ---------- 滚动条：把墨线与黄块延伸到系统控件 ---------- */
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--yellow) var(--paper);
+}
+
+::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--paper);
+  border-left: 2px solid var(--ink);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--yellow);
+  border: 2px solid var(--ink);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--pink);
 }
 
 .visually-hidden {
@@ -56,6 +86,38 @@ body {
   border: 0;
 }
 
+/* ---------- 滚动进度条 ---------- */
+
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  height: 5px;
+  background: var(--pink);
+  box-shadow: 0 2px 0 var(--ink);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+
+@supports (animation-timeline: scroll()) {
+  .scroll-progress {
+    animation: progress-grow linear both;
+    animation-timeline: scroll(root block);
+  }
+}
+
+@keyframes progress-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 /* ---------- header ---------- */
 
 .site-header {
@@ -66,6 +128,18 @@ body {
   border-bottom: 4px solid var(--ink);
 }
 
+/* 顶栏下沿一条警示斜纹，压住整页的视觉重量 */
+.site-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 9px;
+  background-image: repeating-linear-gradient(45deg, var(--ink) 0 7px, transparent 7px 14px);
+  pointer-events: none;
+}
+
 .header-inner {
   display: flex;
   align-items: center;
@@ -73,7 +147,7 @@ body {
   gap: 12px;
   max-width: 1008px;
   margin: 0 auto;
-  padding: 14px 20px;
+  padding: 14px 20px 19px;
 }
 
 .brand {
@@ -92,6 +166,14 @@ body {
   font-size: 18px;
   font-weight: 900;
   border: 3px solid var(--ink);
+  transform: rotate(-4deg);
+  transition: transform 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+}
+
+.brand:hover .brand-mark {
+  transform: rotate(5deg) scale(1.06);
+  background: var(--pink);
+  color: var(--ink);
 }
 
 .brand-name {
@@ -304,8 +386,24 @@ input:focus-visible {
 /* ---------- 发布区 ---------- */
 
 .composer {
+  position: relative;
   padding: 18px;
   transition: box-shadow 0.12s ease;
+}
+
+/* 发布区顶部贴一条胶带，像钉在纸上的便签 */
+.composer::before {
+  content: "";
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  width: 96px;
+  height: 20px;
+  margin-left: -48px;
+  background: rgba(255, 144, 179, 0.9);
+  border: 2px solid var(--ink);
+  transform: rotate(-2.2deg);
+  pointer-events: none;
 }
 
 .composer:focus-within {
@@ -351,6 +449,13 @@ textarea::placeholder {
   border-top: 3px solid var(--ink);
 }
 
+.composer-status {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
 .composer-hint {
   margin: 0;
   font-size: 11px;
@@ -358,6 +463,42 @@ textarea::placeholder {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
+}
+
+/* 字数刻度：一排小方块，接近上限时转粉 */
+.composer-meter {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.meter-block {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--ink);
+  background: var(--surface);
+  transition: background-color 0.12s ease;
+}
+
+.meter-block.is-on {
+  background: var(--ink);
+}
+
+.meter-count {
+  margin-left: 7px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.composer-meter.is-warn .meter-block.is-on {
+  background: var(--pink);
+}
+
+.composer-meter.is-warn .meter-count {
+  color: var(--danger);
 }
 
 .composer-hint.is-error {
@@ -435,10 +576,12 @@ textarea::placeholder {
 
 .timeline-head h2::before {
   content: "";
+  flex: none;
   width: 14px;
   height: 14px;
   background: var(--yellow);
   border: 3px solid var(--ink);
+  transform: rotate(-12deg);
 }
 
 .timeline-count {
@@ -572,6 +715,42 @@ textarea::placeholder {
 
 .action-btn--bookmark.is-active:hover {
   background: var(--blue);
+}
+
+/* 点亮瞬间：爱心弹一下，书签像盖章一样落下 */
+.action-btn--like.is-active .icon {
+  animation: heart-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.action-btn--bookmark.is-active .icon {
+  animation: stamp-in 0.34s ease-out;
+}
+
+@keyframes heart-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.55) rotate(-10deg);
+  }
+  65% {
+    transform: scale(0.9) rotate(4deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes stamp-in {
+  0% {
+    transform: translateY(-5px) scale(0.75);
+  }
+  55% {
+    transform: translateY(1px) scale(1.12);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
 }
 
 .action-btn:disabled {
@@ -854,7 +1033,7 @@ textarea::placeholder {
 
 .sidebar {
   position: sticky;
-  top: 92px;
+  top: 100px;
   min-width: 0;
 }
 
@@ -933,6 +1112,11 @@ textarea::placeholder {
   gap: 10px;
   padding: 11px 16px;
   border-bottom: 2px solid var(--ink);
+  transition: background-color 0.12s ease;
+}
+
+.trend-item:hover {
+  background: var(--yellow);
 }
 
 .trend-item:last-child {
@@ -950,10 +1134,16 @@ textarea::placeholder {
   font-size: 11px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
+  transition: background-color 0.12s ease, transform 0.12s ease;
 }
 
 .trend-rank.is-top {
   background: var(--yellow);
+  transform: rotate(-5deg);
+}
+
+.trend-item:hover .trend-rank.is-top {
+  background: var(--pink);
 }
 
 .trend-title {
@@ -1115,7 +1305,12 @@ textarea::placeholder {
   font-size: 13.5px;
   font-weight: 700;
   color: var(--ink-soft);
-  background: var(--surface);
+  background-color: var(--surface);
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(17, 17, 17, 0.035) 0 9px,
+    transparent 9px 18px
+  );
   border: 3px dashed var(--ink);
 }
 
@@ -1160,6 +1355,19 @@ textarea::placeholder {
 .toast.is-visible {
   opacity: 1;
   transform: translate(-50%, 0);
+  animation: toast-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes toast-pop {
+  0% {
+    transform: translate(-50%, 16px) rotate(-2deg);
+  }
+  60% {
+    transform: translate(-50%, -3px) rotate(1deg);
+  }
+  100% {
+    transform: translate(-50%, 0) rotate(0);
+  }
 }
 
 /* ---------- 动效 ---------- */
@@ -1228,7 +1436,7 @@ textarea::placeholder {
   }
 
   .header-inner {
-    padding: 12px 14px;
+    padding: 12px 14px 17px;
   }
 
   .user-chip-name {
@@ -1247,6 +1455,15 @@ textarea::placeholder {
 
   .post {
     padding: 15px;
+  }
+
+  .post-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .action-btn {
+    white-space: nowrap;
   }
 
   .post:hover {
